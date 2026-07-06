@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: "Cairo", sans-serif;
+    --font-sans: "Cairo", sans-serif;
+    --color-primary: #3A78FA;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #8B5CF6;
+    --color-secondary-foreground: #FFFFFF;
+    --color-accent: #EFF6FF;
+    --color-accent-foreground: #3A78FA;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+    --animate-bounce-slow: bounce-slow 3s infinite;
+    --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+:root {
+    --background: #F4F7FF;
+    --foreground: #1E293B;
+    --card: #FFFFFF;
+    --card-foreground: #1E293B;
+    --popover: #FFFFFF;
+    --popover-foreground: #1E293B;
+    --primary: #3A78FA;
+    --primary-foreground: #FFFFFF;
+    --secondary: #8B5CF6;
+    --secondary-foreground: #FFFFFF;
+    --muted: #F8FAFC;
+    --muted-foreground: #64748B;
+    --accent: #EFF6FF;
+    --accent-foreground: #3A78FA;
+    --destructive: #EF4444;
+
+    /* ── BORDERS: bumped from near-white to clearly visible ── */
+    --border: #CBD5E1;      /* slate-300 — was #E2E8F0, now clearly visible */
+    --input:  #CBD5E1;      /* same for all shadcn input components          */
+
+    --ring: #3A78FA;
+    --chart-1: #3A78FA;
+    --chart-2: #8B5CF6;
+    --chart-3: #EC4899;
+    --chart-4: #F59E0B;
+    --chart-5: #10B981;
+    --radius: 1rem;
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #1E293B;
+    --sidebar-primary: #3A78FA;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #EFF6FF;
+    --sidebar-accent-foreground: #3A78FA;
+    --sidebar-border: #CBD5E1;
+    --sidebar-ring: #3A78FA;
+}
+
+.dark {
+    --background: #0B0F19;
+    --foreground: #F8FAFC;
+    --card: #151D30;
+    --card-foreground: #F8FAFC;
+    --popover: #151D30;
+    --popover-foreground: #F8FAFC;
+    --primary: #3A78FA;
+    --primary-foreground: #FFFFFF;
+    --secondary: #8B5CF6;
+    --secondary-foreground: #FFFFFF;
+    --muted: #1E293B;
+    --muted-foreground: #94A3B8;
+    --accent: #1E293B;
+    --accent-foreground: #3A78FA;
+    --destructive: #EF4444;
+    --border: #334155;
+    --input: #334155;
+    --ring: #3A78FA;
+    --sidebar: #111827;
+    --sidebar-foreground: #F8FAFC;
+    --sidebar-primary: #3A78FA;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #1F2937;
+    --sidebar-accent-foreground: #F8FAFC;
+    --sidebar-border: #334155;
+    --sidebar-ring: #3A78FA;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   GLOBAL BORDER OVERRIDES
+   Applied on top of Tailwind so every input, card, and
+   container has a clearly visible border — no file-by-file edits.
+   ══════════════════════════════════════════════════════════ */
+
+@layer utilities {
+
+  /* ── All text inputs, textareas, selects ────────────── */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    border-width: 2px !important;
+    border-color: #CBD5E1 !important;   /* slate-300 */
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+  textarea:focus,
+  select:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.13) !important;
+    outline: none !important;
+  }
+
+  /* ── White card containers get an auto border ──────── */
+  .bg-white {
+    border: 1.5px solid #CBD5E1;        /* slate-300 */
+  }
+
+  /* ── Strengthen light border utilities ─────────────── */
+  .border-slate-50  { border-color: #CBD5E1 !important; }
+  .border-slate-100 { border-color: #CBD5E1 !important; }
+
+  .border-indigo-100 { border-color: #a5b4fc !important; }  /* indigo-300 */
+  .border-emerald-100 { border-color: #6ee7b7 !important; } /* emerald-300 */
+  .border-amber-100   { border-color: #fcd34d !important; } /* amber-300   */
+  .border-red-100     { border-color: #fca5a5 !important; } /* red-300     */
+
+  /* ── Row dividers ───────────────────────────────────── */
+  .divide-slate-50  > * + * { border-color: #CBD5E1 !important; }
+  .divide-slate-100 > * + * { border-color: #CBD5E1 !important; }
+  .divide-slate-200 > * + * { border-color: #CBD5E1 !important; }
+
+  /* ── shadcn border widths ───────────────────────────── */
+  .border   { border-width: 1.5px; }
+  .border-2 { border-width: 2px;   }
+
+  /* ── Hide scrollbars ────────────────────────────────── */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+}
