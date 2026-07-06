@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System users (Patients, Doctors, Admins)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "DOCTOR", "PATIENT", "PROMOTER"] },
+        "avatarUrl": { "type": "string" },
+        "phone": { "type": "string" },
+        "about": { "type": "string" },
+        "specialization": { "type": "string" },
+        "price": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "integer" },
+        "locations": { "type": "array", "items": { "type": "string" } },
+        "availableTimes": { "type": "array", "items": { "type": "string" } },
+        "walletBalance": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "name", "role"]
+    },
+    "Specialty": {
+      "title": "Specialty",
+      "description": "Medical specialties",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Medical appointment bookings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED"] },
+        "notes": { "type": "string" },
+        "price": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "patientId", "doctorId", "date", "status"]
+    },
+    "MedicalRecord": {
+      "title": "MedicalRecord",
+      "description": "Patient medical records/history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "diagnosis": { "type": "string" },
+        "prescription": { "type": "string" },
+        "notes": { "type": "string" },
+        "nextVisit": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "patientId", "doctorId", "date", "diagnosis"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Wallet transactions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["Payment", "Top-up", "Withdrawal"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "date", "type", "amount"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["INFO", "SUCCESS", "WARNING", "ERROR"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "message", "type", "read"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/specialties/{specialtyId}": {
+      "schema": "Specialty",
+      "description": "Medical specialties list"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Healthcare appointment records"
+    },
+    "/medicalRecords/{recordId}": {
+      "schema": "MedicalRecord",
+      "description": "Patient medical history entries"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Financial records for user wallets"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications"
+    }
+  }
+}

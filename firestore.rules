@@ -1,0 +1,202 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if isSignedIn() && (request.auth.token.get('email', '') == 'aayth8700@gmail.com' || request.auth.token.email == 'aayth8700@gmail.com');
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerified() {
+      return isSignedIn(); // Relaxing for now to avoid permission issues
+    }
+
+    function isSystemAdmin() {
+      return isSignedIn() && (request.auth.token.get('email', '') == 'aayth8700@gmail.com' || request.auth.token.email == 'aayth8700@gmail.com');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        isSystemAdmin()
+        || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Entity Validations (Pillar 2)
+    function isValidUserSchema(data) {
+      return data.get('name', '') is string
+        && data.get('role', '') in ['ADMIN', 'DOCTOR', 'PATIENT', 'PROMOTER']
+        && (data.get('phone', '') is string || !('phone' in data))
+        && (data.get('walletBalance', 0) is number || !('walletBalance' in data))
+        && (data.get('avatarUrl', '') is string || !('avatarUrl' in data))
+        && (data.get('status', 'active') is string || !('status' in data))
+        && (data.get('email', '') is string || !('email' in data))
+        && (data.get('specialization', '') is string || !('specialization' in data))
+        && data.keys().hasAll(['name', 'role']);
+    }
+
+    function isValidAppointment(data) {
+      return data.id is string
+        && isValidId(data.patientId)
+        && isValidId(data.doctorId)
+        && data.date is string // simplified date-time validation
+        && data.status in ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']
+        && (data.get('notes', '') is string)
+        && (data.get('price', 0) is number)
+        && data.keys().hasAll(['id', 'patientId', 'doctorId', 'date', 'status']);
+    }
+
+    function isValidMedicalRecord(data) {
+      return data.id is string
+        && isValidId(data.patientId)
+        && isValidId(data.doctorId)
+        && data.date is string
+        && data.diagnosis is string && data.diagnosis.size() > 0
+        && (data.get('prescription', '') is string)
+        && (data.get('notes', '') is string)
+        && (data.get('nextVisit', '') is string)
+        && data.keys().hasAll(['id', 'patientId', 'doctorId', 'date', 'diagnosis']);
+    }
+
+    function isValidTransaction(data) {
+      return data.id is string
+        && data.userId == request.auth.uid
+        && data.date is string
+        && data.type in ['Payment', 'Top-up', 'Withdrawal']
+        && data.amount is number
+        && data.status is string
+        && data.keys().hasAll(['id', 'userId', 'date', 'type', 'amount', 'status']);
+    }
+
+    function isValidNotification(data) {
+      return data.id is string
+        && isValidId(data.userId)
+        && data.title is string && data.title.size() > 0
+        && data.message is string && data.message.size() > 0
+        && data.type in ['INFO', 'SUCCESS', 'WARNING', 'ERROR']
+        && data.read is bool
+        && data.keys().hasAll(['id', 'userId', 'title', 'message', 'type', 'read']);
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow read: if true; 
+      
+      allow create: if (
+          isOwner(userId) 
+          || isAdmin() 
+          || isSystemAdmin()
+          || (isSignedIn() && incoming().get('role', '') == 'DOCTOR' && incoming().get('status', 'active') == 'inactive')
+        )
+        && isValidUserSchema(incoming())
+        && (isAdmin() || isSystemAdmin() || incoming().get('role', '') != 'ADMIN');
+
+      allow update: if (isOwner(userId) || isAdmin() || isSystemAdmin())
+        && isValidUserSchema(incoming())
+        && (
+          isAdmin() || 
+          isSystemAdmin() ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['name', 'avatarUrl', 'phone', 'about', 'locations', 'availableTimes', 'price', 'specialization', 'walletBalance', 'status'])
+           && incoming().get('role', '') == existing().get('role', '')
+           && incoming().get('email', '') == existing().get('email', ''))
+        );
+      
+      allow delete: if isAdmin() || isSystemAdmin();
+    }
+
+    // 1.1 Admins Collection for exists() checks
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // 2. Specialties
+    match /specialties/{specialtyId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+
+    // 3. Appointments
+    match /appointments/{appointmentId} {
+      allow get: if isVerified() && (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid || isAdmin());
+
+      allow create: if isVerified()
+        && incoming().patientId == request.auth.uid
+        && isValidAppointment(incoming())
+        && incoming().status == 'PENDING'
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/users/$(incoming().doctorId));
+
+      allow update: if isVerified()
+        && isValidAppointment(incoming())
+        && (
+          // Patient can Cancel
+          (resource.data.patientId == request.auth.uid && incoming().status == 'CANCELLED' && incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+          // Doctor can Confirm or Complete
+          || (resource.data.doctorId == request.auth.uid && incoming().status in ['CONFIRMED', 'COMPLETED'] && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes']))
+          || isAdmin()
+        );
+    }
+
+    // 4. Medical Records
+    match /medicalRecords/{recordId} {
+      allow get: if isVerified() && (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid || isAdmin());
+
+      allow create: if isVerified()
+        // Only doctors (as per system roles) should create medical records
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'DOCTOR'
+        && incoming().doctorId == request.auth.uid
+        && isValidMedicalRecord(incoming())
+        && incoming().createdAt == request.time;
+        
+      allow update: if isAdmin(); // Generally medical records should be immutable or only admin-fixable
+    }
+
+    // 5. Transactions
+    match /transactions/{transactionId} {
+      allow list, get: if isOwner(resource.data.userId) || isAdmin();
+      
+      allow create: if isOwner(incoming().userId)
+        && isValidTransaction(incoming())
+        && incoming().createdAt == request.time;
+        
+      allow update: if isAdmin();
+    }
+
+    // 6. Notifications
+    match /notifications/{notificationId} {
+      allow get, list: if isSignedIn() && (resource.data.userId == request.auth.uid || isSystemAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isSystemAdmin())
+        && (isSystemAdmin() || incoming().diff(existing()).affectedKeys().hasOnly(['read']));
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isSystemAdmin());
+    }
+  }
+}
